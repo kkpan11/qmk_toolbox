@@ -15,29 +15,28 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: microsoft/setup-msbuild@v1.3
-
-    - uses: nuget/setup-nuget@v1
+    - uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '6.x'
 
     - uses: actions/checkout@v4
 
     - name: Build
       working-directory: ./windows
       run: |
-        nuget restore
-        msbuild "QMK Toolbox.sln" /verbosity:minimal /p:Configuration=Release
+        dotnet publish -c Release -r win-x64 --self-contained true
 
     - name: Create installer
       working-directory: ./windows
       run: |
         iscc install_compiler.iss
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: qmk_toolbox.exe
-        path: windows/QMK Toolbox/bin/Release/qmk_toolbox.exe
+        path: windows/QMK Toolbox/bin/Release/win-x64/publish/qmk_toolbox.exe
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: qmk_toolbox_install.exe
         path: windows/qmk_toolbox_install.exe
@@ -73,7 +72,7 @@ jobs:
         xcodebuild CONFIGURATION_BUILD_DIR=build
         ditto -ck --rsrc --sequesterRsrc -v --keepParent "build/QMK Toolbox.app" build/QMK.Toolbox.app.zip
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: QMK.Toolbox.app.zip
         path: macos/build/QMK.Toolbox.app.zip
@@ -81,11 +80,12 @@ jobs:
     - name: Create installer
       working-directory: ./macos
       run: |
+        brew update
         brew install packages
         packagesbuild -v "QMK Toolbox.pkgproj"
         mv "build/QMK Toolbox.pkg" build/QMK.Toolbox.pkg
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: QMK.Toolbox.pkg
         path: macos/build/QMK.Toolbox.pkg
@@ -99,9 +99,9 @@ jobs:
     if: github.event.release.tag_name
 
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
 
-      - uses: softprops/action-gh-release@v1
+      - uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -121,7 +121,7 @@ jobs:
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
 
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
 
       - uses: marvinpinto/action-automatic-releases@latest
         with:

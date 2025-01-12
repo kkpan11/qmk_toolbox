@@ -4,29 +4,30 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Management;
 
-namespace QMK_Toolbox.HidConsole
+namespace QMK_Toolbox.Hid
 {
-    public class HidConsoleListener : IDisposable
+    public class HidListener : IDisposable
     {
         private const ushort ConsoleUsagePage = 0xFF31;
         private const ushort ConsoleUsage = 0x0074;
 
-        public List<HidConsoleDevice> Devices { get; private set; }
+        private const ushort RawUsagePage = 0xFF60;
+        private const ushort RawUsage = 0x0061;
 
-        public delegate void HidConsoleDeviceEventDelegate(HidConsoleDevice device);
+        public List<BaseHidDevice> Devices { get; private set; }
+
+        public delegate void HidDeviceEventDelegate(BaseHidDevice device);
         public delegate void HidConsoleReportReceivedDelegate(HidConsoleDevice device, string data);
 
-        public HidConsoleDeviceEventDelegate consoleDeviceConnected;
-        public HidConsoleDeviceEventDelegate consoleDeviceDisconnected;
+        public HidDeviceEventDelegate hidDeviceConnected;
+        public HidDeviceEventDelegate hidDeviceDisconnected;
         public HidConsoleReportReceivedDelegate consoleReportReceived;
 
         private void EnumerateHidDevices(bool connected)
         {
             var enumeratedDevices = HidDevices.Enumerate()
                 .Where(d => d.IsConnected)
-                .Where(d => d.Capabilities.InputReportByteLength > 0)
-                .Where(d => (ushort)d.Capabilities.UsagePage == ConsoleUsagePage)
-                .Where(d => (ushort)d.Capabilities.Usage == ConsoleUsage);
+                .Where(d => d.Capabilities.InputReportByteLength > 0);
 
             if (connected)
             {
@@ -36,12 +37,18 @@ namespace QMK_Toolbox.HidConsole
 
                     if (device != null && !listed)
                     {
-                        HidConsoleDevice consoleDevice = new HidConsoleDevice(device)
+                        BaseHidDevice hidDevice = CreateDevice(device);
+
+                        if (hidDevice != null)
                         {
-                            consoleReportReceived = HidConsoleReportReceived
-                        };
-                        Devices.Add(consoleDevice);
-                        consoleDeviceConnected?.Invoke(consoleDevice);
+                            Devices.Add(hidDevice);
+
+                            if (hidDevice is HidConsoleDevice)
+                            {
+                                (hidDevice as HidConsoleDevice).consoleReportReceived = HidConsoleReportReceived;
+                            }
+                            hidDeviceConnected?.Invoke(hidDevice);
+                        }
                     }
                 }
             }
@@ -58,8 +65,12 @@ namespace QMK_Toolbox.HidConsole
                             device.HidDevice.CloseDevice();
                         }
                         Devices.Remove(device);
-                        device.consoleReportReceived = null;
-                        consoleDeviceDisconnected?.Invoke(device);
+
+                        if (device is HidConsoleDevice)
+                        {
+                            (device as HidConsoleDevice).consoleReportReceived = null;
+                        }
+                        hidDeviceDisconnected?.Invoke(device);
                     }
                 }
             }
@@ -73,14 +84,14 @@ namespace QMK_Toolbox.HidConsole
         private ManagementEventWatcher deviceConnectedWatcher;
         private ManagementEventWatcher deviceDisconnectedWatcher;
 
-        private ManagementEventWatcher CreateManagementEventWatcher(string eventType)
+        private static ManagementEventWatcher CreateManagementEventWatcher(string eventType)
         {
             return new ManagementEventWatcher($"SELECT * FROM {eventType} WITHIN 2 WHERE TargetInstance ISA 'Win32_PnPEntity' AND TargetInstance.DeviceID LIKE 'HID%'");
         }
 
         private void HidDeviceWmiEvent(object sender, EventArrivedEventArgs e)
         {
-            if (!(e.NewEvent["TargetInstance"] is ManagementBaseObject _))
+            if (e.NewEvent["TargetInstance"] is not ManagementBaseObject _)
             {
                 return;
             }
@@ -92,23 +103,14 @@ namespace QMK_Toolbox.HidConsole
 
         public void Start()
         {
-            if (Devices == null)
-            {
-                Devices = new List<HidConsoleDevice>();
-            }
+            Devices ??= new List<BaseHidDevice>();
             EnumerateHidDevices(true);
 
-            if (deviceConnectedWatcher == null)
-            {
-                deviceConnectedWatcher = CreateManagementEventWatcher("__InstanceCreationEvent");
-            }
+            deviceConnectedWatcher ??= CreateManagementEventWatcher("__InstanceCreationEvent");
             deviceConnectedWatcher.EventArrived += HidDeviceWmiEvent;
             deviceConnectedWatcher.Start();
 
-            if (deviceDisconnectedWatcher == null)
-            {
-                deviceDisconnectedWatcher = CreateManagementEventWatcher("__InstanceDeletionEvent");
-            }
+            deviceDisconnectedWatcher ??= CreateManagementEventWatcher("__InstanceDeletionEvent");
             deviceDisconnectedWatcher.EventArrived += HidDeviceWmiEvent;
             deviceDisconnectedWatcher.Start();
         }
@@ -133,6 +135,21 @@ namespace QMK_Toolbox.HidConsole
             Stop();
             deviceConnectedWatcher?.Dispose();
             deviceDisconnectedWatcher?.Dispose();
+            GC.SuppressFinalize(this);
+        }
+
+        private static BaseHidDevice CreateDevice(HidDevice d)
+        {
+            if ((ushort)d.Capabilities.UsagePage == ConsoleUsagePage && (ushort)d.Capabilities.Usage == ConsoleUsage)
+            {
+                return new HidConsoleDevice(d);
+            }
+            else if ((ushort)d.Capabilities.UsagePage == RawUsagePage && (ushort)d.Capabilities.Usage == RawUsage)
+            {
+                return new RawDevice(d);
+            }
+
+            return null;
         }
     }
 }

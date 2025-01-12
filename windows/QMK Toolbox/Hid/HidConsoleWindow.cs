@@ -1,8 +1,9 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Linq;
 using System.Windows.Forms;
 
-namespace QMK_Toolbox.HidConsole
+namespace QMK_Toolbox.Hid
 {
     public partial class HidConsoleWindow : Form
     {
@@ -27,40 +28,59 @@ namespace QMK_Toolbox.HidConsole
 
         private void HidConsoleWindow_Load(object sender, EventArgs e)
         {
-            consoleListener.consoleDeviceConnected += ConsoleDeviceConnected;
-            consoleListener.consoleDeviceDisconnected += ConsoleDeviceDisconnected;
-            consoleListener.consoleReportReceived += ConsoleReportReceived;
-            consoleListener.Start();
+            CenterToParent();
+
+            hidListener.hidDeviceConnected += HidDeviceConnected;
+            hidListener.hidDeviceDisconnected += HidDeviceDisconnected;
+            hidListener.consoleReportReceived += ConsoleReportReceived;
+            hidListener.Start();
         }
 
         private void HidConsoleWindow_FormClosing(object sender, FormClosingEventArgs e)
         {
-            consoleListener.Dispose();
+            hidListener.hidDeviceConnected -= HidDeviceConnected;
+            hidListener.hidDeviceDisconnected -= HidDeviceDisconnected;
+            hidListener.consoleReportReceived -= ConsoleReportReceived;
+            hidListener.Dispose();
         }
         #endregion
 
         #region HID Console
-        private readonly HidConsoleListener consoleListener = new HidConsoleListener();
+        private readonly HidListener hidListener = new();
 
         private HidConsoleDevice lastReportedDevice;
 
-        private void ConsoleDeviceConnected(HidConsoleDevice device)
+        private void HidDeviceConnected(BaseHidDevice device)
         {
             Invoke(new Action(() =>
             {
-                lastReportedDevice = device;
-                UpdateConsoleList();
-                logTextBox.LogHid($"HID console connected: {device}");
+                if (device is HidConsoleDevice)
+                {
+                    lastReportedDevice = device as HidConsoleDevice;
+                    UpdateConsoleList();
+                    logTextBox.LogHid($"HID console connected: {device}");
+                }
+                else
+                {
+                    logTextBox.LogHid($"Raw HID device connected: {device}");
+                }
             }));
         }
 
-        private void ConsoleDeviceDisconnected(HidConsoleDevice device)
+        private void HidDeviceDisconnected(BaseHidDevice device)
         {
             Invoke(new Action(() =>
             {
-                lastReportedDevice = null;
-                UpdateConsoleList();
-                logTextBox.LogHid($"HID console disconnected: {device}");
+                if (device is HidConsoleDevice)
+                {
+                    lastReportedDevice = null;
+                    UpdateConsoleList();
+                    logTextBox.LogHid($"HID console disconnected: {device}");
+                }
+                else
+                {
+                    logTextBox.LogHid($"Raw HID device disconnected: {device}");
+                }
             }));
         }
 
@@ -69,7 +89,8 @@ namespace QMK_Toolbox.HidConsole
             Invoke(new Action(() =>
             {
                 int selectedDevice = consoleList.SelectedIndex;
-                if (selectedDevice == 0 || consoleListener.Devices[selectedDevice - 1] == device)
+                var consoleDevices = hidListener.Devices.Where(d => d is HidConsoleDevice).ToList();
+                if (selectedDevice == 0 || consoleDevices[selectedDevice - 1] == device)
                 {
                     if (lastReportedDevice != device)
                     {
@@ -86,12 +107,9 @@ namespace QMK_Toolbox.HidConsole
             var selected = consoleList.SelectedIndex != -1 ? consoleList.SelectedIndex : 0;
             consoleList.Items.Clear();
 
-            foreach (var device in consoleListener.Devices)
+            foreach (var device in hidListener.Devices.Where(d => d is HidConsoleDevice))
             {
-                if (device != null)
-                {
-                    consoleList.Items.Add(device.ToString());
-                }
+                consoleList.Items.Add(device.ToString());
             }
 
             if (consoleList.Items.Count > 0)
@@ -105,9 +123,9 @@ namespace QMK_Toolbox.HidConsole
         #region Log Box
         private void LogContextMenuStrip_Opening(object sender, CancelEventArgs e)
         {
-            copyToolStripMenuItem.Enabled = (logTextBox.SelectedText.Length > 0);
-            selectAllToolStripMenuItem.Enabled = (logTextBox.Text.Length > 0);
-            clearToolStripMenuItem.Enabled = (logTextBox.Text.Length > 0);
+            copyToolStripMenuItem.Enabled = logTextBox.SelectedText.Length > 0;
+            selectAllToolStripMenuItem.Enabled = logTextBox.Text.Length > 0;
+            clearToolStripMenuItem.Enabled = logTextBox.Text.Length > 0;
         }
 
         private void CopyToolStripMenuItem_Click(object sender, EventArgs e)

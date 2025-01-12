@@ -1,4 +1,5 @@
-﻿using System.Windows.Forms;
+﻿using System;
+using System.Windows.Forms;
 
 namespace QMK_Toolbox.KeyTester
 {
@@ -159,6 +160,11 @@ namespace QMK_Toolbox.KeyTester
             return instance;
         }
 
+        private void KeyTesterWindow_Load(object sender, EventArgs e)
+        {
+            CenterToParent();
+        }
+
         protected override bool ProcessKeyMessage(ref Message m)
         {
             // The KeyDown and KeyUp events do not provide access to the virtual key and scancode
@@ -166,12 +172,12 @@ namespace QMK_Toolbox.KeyTester
             if (m.Msg == WM_KEYDOWN || m.Msg == WM_KEYUP || m.Msg == WM_SYSKEYDOWN || m.Msg == WM_SYSKEYUP)
             {
                 int vKey = m.WParam.ToInt32();
-                int scanCode = (m.LParam.ToInt32() >> 16) & 0x1FF;
+                int scanCode = (int)((m.LParam.ToInt64() >> 16) & 0x1FF);
                 KeyControl pressedKeyControl = GetKeyControlForKey(vKey, scanCode);
 
                 if (pressedKeyControl != null)
                 {
-                    pressedKeyControl.Pressed = (m.Msg == WM_KEYDOWN || m.Msg == WM_SYSKEYDOWN);
+                    pressedKeyControl.Pressed = m.Msg == WM_KEYDOWN || m.Msg == WM_SYSKEYDOWN;
                     pressedKeyControl.Tested = true;
                 }
 

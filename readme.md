@@ -1,17 +1,14 @@
 # QMK Toolbox
 
-[![Build Status](https://github.com/qmk/qmk_toolbox/workflows/CI/badge.svg?branch=master)](https://github.com/qmk/qmk_toolbox/actions?query=workflow%3ACI)
-[![Current Version](https://img.shields.io/github/tag/qmk/qmk_toolbox.svg)](https://github.com/qmk/qmk_toolbox/tags)
-[![Discord](https://img.shields.io/discord/440868230475677696.svg)](https://discord.gg/Uq7gcHh)
-[![License](https://img.shields.io/github/license/qmk/qmk_toolbox)](https://github.com/qmk/qmk_toolbox/blob/master/LICENSE.md)
-[![GitHub contributors](https://img.shields.io/github/contributors/qmk/qmk_toolbox.svg)](https://github.com/qmk/qmk_toolbox/pulse/monthly)
-[![GitHub forks](https://img.shields.io/github/forks/qmk/qmk_toolbox.svg?style=social&label=Fork)](https://github.com/qmk/qmk_toolbox/)
+[![Latest Release](https://img.shields.io/github/v/release/qmk/qmk_toolbox?color=3D87CE&label=Latest&sort=semver&style=for-the-badge)](https://github.com/qmk/qmk_toolbox/releases/latest)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/qmk/qmk_toolbox/build.yml?logo=github&style=for-the-badge)](https://github.com/qmk/qmk_toolbox/actions?query=workflow%3ACI+branch%3Amaster)
+[![Discord](https://img.shields.io/discord/440868230475677696.svg?logo=discord&logoColor=white&color=7289DA&style=for-the-badge)](https://discord.gg/qmk)
 
 This is a collection of flashing tools packaged into one app. It supports auto-detection and auto-flashing of firmware to keyboards.
 
 |Windows|macOS|
 |-------|-----|
-|[![Windows](https://i.imgur.com/sdh8byj.png)](https://i.imgur.com/sdh8byj.png)|[![macOS](https://i.imgur.com/3x8Xrkv.png)](https://i.imgur.com/3x8Xrkv.png)|
+|[![Windows](https://i.imgur.com/jHaX9bV.png)](https://i.imgur.com/jHaX9bV.png)|[![macOS](https://i.imgur.com/8hZEfDD.png)](https://i.imgur.com/8hZEfDD.png)|
 
 ## Flashing
 
@@ -41,7 +38,7 @@ The Toolbox also listens to HID messages on usage page `0xFF31` and usage `0x007
 
 If you have `CONSOLE_ENABLE = yes` in your keyboard's `rules.mk`, you can print messages with `xprintf()`, useful for debugging:
 
-![Hello world from Console](https://i.imgur.com/qxLb2zS.png)
+![Hello world from Console](https://i.imgur.com/bY8l233.png)
 
 See the [QMK Docs](https://docs.qmk.fm/#/newbs_testing_debugging?id=debugging) for more information.
 
@@ -49,8 +46,8 @@ See the [QMK Docs](https://docs.qmk.fm/#/newbs_testing_debugging?id=debugging) f
 
 ### System Requirements
 
-* macOS 10.15 (Catalina) or higher
-* Windows 10 May 2019 Update or higher (earlier with [.NET Framework 4.8](https://docs.microsoft.com/en-us/dotnet/framework/migration-guide/versions-and-dependencies#net-framework-48))
+* macOS 12 (Monterey) or higher
+* Windows 10 May 2020 Update (20H1) or higher
 
 ### Dependencies
 
@@ -60,11 +57,13 @@ If you run into any issues with "Device not found" when flashing, then you may n
 
 ### Download
 
-Get the latest release [here](https://github.com/qmk/qmk_toolbox/releases).
+The [current version](https://github.com/qmk/qmk_toolbox/releases) of QMK Toolbox is **0.3.3**.
+
+* **Windows:** [standalone](https://github.com/qmk/qmk_toolbox/releases/latest/download/qmk_toolbox.exe), [installer](https://github.com/qmk/qmk_toolbox/releases/latest/download/qmk_toolbox_install.exe)
+* **macOS**: [standalone](https://github.com/qmk/qmk_toolbox/releases/latest/download/QMK.Toolbox.app.zip), [installer](https://github.com/qmk/qmk_toolbox/releases/latest/download/QMK.Toolbox.pkg)
 
 For Homebrew users, it is also available as a Cask:
 
 ```sh
-$ brew tap homebrew/cask-drivers
-$ brew install --cask qmk-toolbox
+brew install qmk-toolbox
 ```
